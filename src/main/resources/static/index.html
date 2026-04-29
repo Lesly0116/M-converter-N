@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .file-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-area:hover {
+            border-color: #764ba2;
+            background: #f8f9ff;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            cursor: pointer;
+            display: inline-block;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .file-label:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        #fileName {
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-word-pdf { background: #e74c3c; color: white; }
+        .btn-pdf-word { background: #3498db; color: white; }
+        .btn-pdf-excel { background: #27ae60; color: white; }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+        }
+
+        .status.loading {
+            background: #e2e3e5;
+            color: #383d41;
+            display: block;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📄 Document Converter</h1>
+        <p class="subtitle">Convertissez vos documents en quelques clics</p>
+
+        <div class="file-area" onclick="document.getElementById('fileInput').click()">
+            <div style="font-size: 48px; margin-bottom: 10px;">📁</div>
+            <div class="file-label">Choisir un fichier</div>
+            <input type="file" id="fileInput" accept=".pdf,.docx,.doc">
+            <div id="fileName">Aucun fichier sélectionné</div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-word-pdf" onclick="convert('word-to-pdf')">Word → PDF</button>
+            <button class="btn-pdf-word" onclick="convert('pdf-to-word')">PDF → Word</button>
+            <button class="btn-pdf-excel" onclick="convert('pdf-to-excel')">PDF → Excel</button>
+        </div>
+
+        <div id="status" class="status"></div>
+        <div class="footer">
+            <p>Formats supportés : DOCX, DOC, PDF</p>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            selectedFile = e.target.files[0];
+            if (selectedFile) {
+                document.getElementById('fileName').textContent = selectedFile.name;
+            } else {
+                document.getElementById('fileName').textContent = 'Aucun fichier sélectionné';
+            }
+        });
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = 'status ' + type;
+        }
+
+        function convert(type) {
+            if (!selectedFile) {
+                showStatus('Veuillez sélectionner un fichier', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            let endpoint = '';
+            switch(type) {
+                case 'word-to-pdf':
+                    endpoint = '/api/convert/word-to-pdf';
+                    break;
+                case 'pdf-to-word':
+                    endpoint = '/api/convert/pdf-to-word';
+                    break;
+                case 'pdf-to-excel':
+                    endpoint = '/api/convert/pdf-to-excel';
+                    break;
+            }
+
+            showStatus('Conversion en cours...', 'loading');
+
+            fetch(endpoint, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                }
+                throw new Error('Erreur lors de la conversion');
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const extension = type === 'word-to-pdf' ? 'pdf' : (type === 'pdf-to-word' ? 'docx' : 'xlsx');
+                a.download = `converted_file.${extension}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                showStatus('Conversion réussie ! Téléchargement en cours...', 'success');
+            })
+            .catch(error => {
+                showStatus('Erreur : ' + error.message, 'error');
+            });
+        }
+    </script>
+</body>
+</html>
